@@ -44,6 +44,7 @@ export default function Navbar() {
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
             {[
+              { href: "/", label: "Home" },
               { href: "/projects", label: "Browse Projects" },
               { href: "/order", label: "Custom Report" },
               { href: "/how-it-works", label: "How It Works" },
@@ -98,6 +99,7 @@ export default function Navbar() {
         {menuOpen && (
           <div className="md:hidden border-t border-gray-100 py-3 flex flex-col gap-1">
             {[
+              { href: "/", label: "Home" },
               { href: "/projects", label: "Browse Projects" },
               { href: "/order", label: "Custom Report" },
               { href: "/how-it-works", label: "How It Works" },
