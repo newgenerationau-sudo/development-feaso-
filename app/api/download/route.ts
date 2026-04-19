@@ -3,11 +3,10 @@ import Stripe from "stripe";
 import path from "path";
 import fs from "fs";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-03-25.dahlia",
-});
-
 export async function GET(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
+    apiVersion: "2026-03-25.dahlia",
+  });
   const { searchParams } = new URL(req.url);
   const sessionId = searchParams.get("session_id");
   const file = searchParams.get("file");
