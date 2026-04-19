@@ -3,9 +3,9 @@ import fs from "fs";
 import path from "path";
 import JSZip from "jszip";
 
-const DATA_PATH    = path.join(process.cwd(), "data", "uploaded-projects.json");
-const PHOTOS_DIR   = path.join(process.cwd(), "public", "uploads", "projects");
-const REPORTS_DIR  = path.join(process.cwd(), "reports");
+const DATA_PATH    = path.join(/*turbopackIgnore: true*/ process.cwd(), "data", "uploaded-projects.json");
+const PHOTOS_DIR   = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads", "projects");
+const REPORTS_DIR  = path.join(/*turbopackIgnore: true*/ process.cwd(), "reports");
 
 function ensureDirs() {
   [PHOTOS_DIR, REPORTS_DIR, path.dirname(DATA_PATH)].forEach(d => {
