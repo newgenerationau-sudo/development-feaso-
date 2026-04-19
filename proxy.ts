@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 const SITE_PASSWORD = process.env.SITE_PASSWORD || 'devfeaso2024'
 const COOKIE_NAME = 'site_auth'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Allow access to the password page and its API route
