@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function POST(req: NextRequest) {
   const resend = new Resend(process.env.RESEND_API_KEY ?? 're_placeholder');
@@ -9,6 +11,17 @@ export async function POST(req: NextRequest) {
     if (!address || !name || !email) {
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
+
+    // Save to Supabase CRM
+    try {
+      const cookieStore = cookies();
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
+      );
+      await supabase.from("inquiries").insert({ name, email, phone, address, notes });
+    } catch { /* continue even if DB save fails */ }
 
     const teamEmail = process.env.TEAM_EMAIL ?? "hello@developmentfeaso.com.au";
     const resendApiKey = process.env.RESEND_API_KEY;
