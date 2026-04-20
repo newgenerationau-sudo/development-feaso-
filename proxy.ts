@@ -6,8 +6,8 @@ const COOKIE_NAME = 'site_auth'
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow access to the password page and its API route
-  if (pathname === '/password' || pathname === '/api/auth/password') {
+  // Allow password page and all API routes through
+  if (pathname === '/password' || pathname.startsWith('/api/')) {
     return NextResponse.next()
   }
 
