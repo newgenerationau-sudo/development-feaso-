@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-function getSupabase() {
-  const cookieStore = cookies();
+async function getSupabase() {
+  const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -12,7 +12,7 @@ function getSupabase() {
 }
 
 export async function GET() {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   const { data, error } = await supabase
     .from("inquiries")
     .select("*")
@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest) {
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   const { status } = await req.json();
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   const { error } = await supabase.from("inquiries").update({ status }).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
