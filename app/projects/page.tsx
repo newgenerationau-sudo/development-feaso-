@@ -10,11 +10,18 @@ import { useCartStore } from "@/lib/cart-store";
 
 function BuyNowButton({ project }: { project: import("@/lib/projects").Project }) {
   const [loading, setLoading] = useState(false);
+  const isFree = !project.price || project.price === 0;
 
   async function handleBuyNow(e: React.MouseEvent) {
     e.stopPropagation();
     setLoading(true);
     try {
+      if (isFree) {
+        if (project.reportFile) {
+          window.location.href = `/api/download/free?file=${encodeURIComponent(project.reportFile)}`;
+        }
+        return;
+      }
       const res = await fetch("/api/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,9 +44,9 @@ function BuyNowButton({ project }: { project: import("@/lib/projects").Project }
       onClick={handleBuyNow}
       disabled={loading}
       className="w-full py-2 rounded-lg text-sm font-bold text-white transition-colors disabled:opacity-60"
-      style={{ backgroundColor: loading ? "#999" : "#f26c21" }}
+      style={{ backgroundColor: loading ? "#999" : "#007a6e" }}
     >
-      {loading ? "Redirecting…" : `Buy Now — $${project.price}`}
+      {loading ? "Downloading…" : isFree ? "Download Free Report" : `Get Report — $${project.price}`}
     </button>
   );
 }
@@ -465,7 +472,7 @@ function ProjectsContent() {
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TYPE_COLORS[project.type] ?? "bg-gray-100 text-gray-600"}`}>
                       {project.type}
                     </span>
-                    <span className="font-extrabold text-[#007a6e]">${project.price}</span>
+                    <span className="font-extrabold text-[#007a6e]">Free for member</span>
                   </div>
 
                   {/* Address */}

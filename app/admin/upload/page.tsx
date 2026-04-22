@@ -24,7 +24,7 @@ export default function AdminUploadPage() {
   const [description, setDescription] = useState("");
   const [landSize, setLandSize]   = useState("");
   const [units, setUnits]         = useState("");
-  const [price, setPrice]         = useState("50");
+  const [price, setPrice]         = useState("0");
 
   const [photo, setPhoto]             = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);

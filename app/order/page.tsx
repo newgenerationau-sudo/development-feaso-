@@ -128,7 +128,7 @@ function OrderForm() {
           </p>
           <p className="text-gray-700 font-semibold mb-4">{address}</p>
           <p className="text-gray-400 text-sm">
-            Our team will review your property and send you a free quote to <strong>{email}</strong> within 1–2 business days.
+            Our team will review your property and send you a free consultation to <strong>{email}</strong> within 1–2 business days.
           </p>
         </div>
       </div>
@@ -140,7 +140,7 @@ function OrderForm() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Request a Free Quote</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Request a Free Consultation</h1>
           <p className="text-gray-500 text-lg">
             Enter your property address and we&apos;ll send you a personalised feasibility quote — no obligation, no cost.
           </p>
@@ -152,7 +152,7 @@ function OrderForm() {
           <span className="text-gray-200">→</span>
           <span className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-[#e6f4f2] text-[#007a6e] font-bold flex items-center justify-center text-xs">2</span>We review the site</span>
           <span className="text-gray-200">→</span>
-          <span className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-[#e6f4f2] text-[#007a6e] font-bold flex items-center justify-center text-xs">3</span>Free quote sent to you</span>
+          <span className="flex items-center gap-2"><span className="w-6 h-6 rounded-full bg-[#e6f4f2] text-[#007a6e] font-bold flex items-center justify-center text-xs">3</span>Free consultation sent to you</span>
         </div>
 
         {/* Form card */}
@@ -310,7 +310,7 @@ function OrderForm() {
               className="w-full py-4 rounded-lg text-white font-bold text-lg transition-colors disabled:opacity-60"
               style={{ backgroundColor: loading ? "#999" : "#007a6e" }}
             >
-              {loading ? "Sending your request…" : "Send Us Your Request — Get a Free Quote"}
+              {loading ? "Sending your request…" : "Send Us Your Request — Get a Free Consultation"}
             </button>
 
             <p className="text-center text-xs text-gray-400">

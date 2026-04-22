@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       // Notify team to produce the report
       await resend.emails.send({
         from: "Development Feaso <noreply@developmentfeaso.com.au>",
-        to: process.env.TEAM_EMAIL ?? "hello@developmentfeaso.com.au",
+        to: process.env.TEAM_EMAIL ?? "newgeneration.au@gmail.com",
         subject: `New Custom Report Order — ${addr}`,
         html: `<p>New feasibility report ordered for:</p><p><strong>${addr}</strong></p><p>Customer: ${customerName} &lt;${customerEmail}&gt;</p>`,
       });

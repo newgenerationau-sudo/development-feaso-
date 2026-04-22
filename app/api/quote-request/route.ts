@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       await supabase.from("inquiries").insert({ name, email, phone, address, notes });
     } catch { /* continue even if DB save fails */ }
 
-    const teamEmail = process.env.TEAM_EMAIL ?? "hello@developmentfeaso.com.au";
+    const teamEmail = process.env.TEAM_EMAIL ?? "newgeneration.au@gmail.com";
     const resendApiKey = process.env.RESEND_API_KEY;
 
     // If Resend is not configured, still return success (log to console for now)

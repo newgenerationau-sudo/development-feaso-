@@ -10,9 +10,25 @@ export default function CartDrawer() {
   useEffect(() => setMounted(true), []);
   const [loading, setLoading] = useState(false);
 
+  const allFree = items.every(i => !i.project.price || i.project.price === 0);
+
   async function handleCheckout() {
     setLoading(true);
     try {
+      if (allFree) {
+        // Download each free report directly
+        for (const item of items) {
+          if (item.project.reportFile) {
+            const a = document.createElement("a");
+            a.href = `/api/download/free?file=${encodeURIComponent(item.project.reportFile)}`;
+            a.download = item.project.reportFile;
+            a.click();
+          }
+        }
+        clearCart();
+        setOpen(false);
+        return;
+      }
       const res = await fetch("/api/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -89,7 +105,9 @@ export default function CartDrawer() {
                         {item.project.address}
                       </p>
                       <p className="text-gray-500 text-xs">{item.project.suburb}, {item.project.state}</p>
-                      <p className="text-[#007a6e] font-bold text-sm mt-1">${item.project.price} AUD</p>
+                      <p className="text-[#007a6e] font-bold text-sm mt-1">
+                        {!item.project.price || item.project.price === 0 ? "Free" : `$${item.project.price} AUD`}
+                      </p>
                     </div>
                     <button
                       onClick={() => removeItem(item.project.id)}
@@ -109,7 +127,9 @@ export default function CartDrawer() {
               <div className="px-6 py-4 border-t border-gray-100">
                 <div className="flex justify-between mb-4">
                   <span className="font-semibold text-gray-700">Total</span>
-                  <span className="font-extrabold text-xl text-gray-900">${total()} AUD</span>
+                  <span className="font-extrabold text-xl text-gray-900">
+                    {allFree ? "Free" : `$${total()} AUD`}
+                  </span>
                 </div>
                 <button
                   onClick={handleCheckout}
@@ -117,7 +137,7 @@ export default function CartDrawer() {
                   className="w-full py-3 rounded-lg text-white font-bold transition-colors disabled:opacity-60"
                   style={{ backgroundColor: loading ? "#999" : "#007a6e" }}
                 >
-                  {loading ? "Redirecting…" : "Checkout Securely"}
+                  {loading ? "Downloading…" : allFree ? "Download Free Reports" : "Checkout Securely"}
                 </button>
                 <button
                   onClick={clearCart}

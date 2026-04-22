@@ -45,9 +45,10 @@ export default function Navbar() {
           <nav className="hidden md:flex items-center gap-1">
             {[
               { href: "/", label: "Home" },
+              { href: "/property-report", label: "Property Report" },
               { href: "/projects", label: "Browse Projects" },
               { href: "/order", label: "Custom Report" },
-              { href: "/how-it-works", label: "How It Works" },
+              { href: "/about", label: "About Us" },
             ].map((item) => (
               <Link key={item.href} href={item.href}
                 className="px-4 py-2 text-sm font-semibold text-gray-700 hover:text-[#007a6e] hover:bg-gray-50 rounded-md transition-colors">
@@ -79,7 +80,7 @@ export default function Navbar() {
             <Link href="/order"
               className="px-5 py-2 rounded-md text-white text-sm font-bold transition-colors"
               style={{ backgroundColor: "#007a6e" }}>
-              Get Report — $50
+              Free Consultation
             </Link>
           </div>
 
@@ -100,9 +101,10 @@ export default function Navbar() {
           <div className="md:hidden border-t border-gray-100 py-3 flex flex-col gap-1">
             {[
               { href: "/", label: "Home" },
+              { href: "/property-report", label: "Property Report" },
               { href: "/projects", label: "Browse Projects" },
               { href: "/order", label: "Custom Report" },
-              { href: "/how-it-works", label: "How It Works" },
+              { href: "/about", label: "About Us" },
             ].map((item) => (
               <Link key={item.href} href={item.href}
                 className="px-3 py-2 text-gray-700 font-medium rounded-md hover:bg-gray-50"

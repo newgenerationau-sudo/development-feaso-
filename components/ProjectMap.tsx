@@ -254,7 +254,7 @@ export default function ProjectMap({
                   <p style="font-weight:700;font-size:13px;margin:0 0 3px">${project.address}</p>
                   <p style="color:#666;font-size:12px;margin:0 0 6px">${project.suburb}, ${project.state} ${project.postcode}</p>
                   <span style="background:#007a6e;color:#fff;font-size:11px;padding:2px 10px;border-radius:99px">${project.type}</span>
-                  <p style="font-weight:700;color:#007a6e;margin:8px 0 0;font-size:15px">$${project.price} AUD</p>
+                  <p style="font-weight:700;color:#007a6e;margin:8px 0 0;font-size:15px">Free for member</p>
                 </div>`);
               infoWindowRef.current.open(map, marker);
             }
