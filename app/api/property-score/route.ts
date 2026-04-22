@@ -217,13 +217,14 @@ async function fetchVicmapZoning(lat: number, lng: number, stateName: string): P
 }
 
 export async function GET(req: NextRequest) {
-  const lat = parseFloat(req.nextUrl.searchParams.get("lat") ?? "0");
-  const lng = parseFloat(req.nextUrl.searchParams.get("lng") ?? "0");
+  const lat    = parseFloat(req.nextUrl.searchParams.get("lat") ?? "0");
+  const lng    = parseFloat(req.nextUrl.searchParams.get("lng") ?? "0");
+  const suburb = req.nextUrl.searchParams.get("suburb") ?? "";
   if (!lat || !lng) {
     return new Response(JSON.stringify({ error: "Missing lat/lng" }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
-  const city = detectCity(lat, lng);
+  const city  = detectCity(lat, lng);
   const state = detectState(lat, lng);
   const encoder = new TextEncoder();
 
@@ -252,16 +253,6 @@ export async function GET(req: NextRequest) {
       await Promise.all([
         // School — depends on school + university places
         Promise.all([schoolP, univP]).then(([schoolPlaces, univPlaces]) => {
-          const allEd = [...schoolPlaces, ...univPlaces];
-          const withDist = allEd
-            .map(s => ({ name: s.name, dist: haversine(lat, lng, s.lat, s.lng) }))
-            .sort((a, b) => a.dist - b.dist)
-            .filter((s, i, arr) => arr.findIndex(x => x.name === s.name) === i);
-          const univDist = univPlaces
-            .map(u => ({ name: u.name, dist: haversine(lat, lng, u.lat, u.lng) }))
-            .sort((a, b) => a.dist - b.dist);
-
-          // Enrich with ACARA data from local DB
           const stateCode = state.name === "Victoria" ? "VIC"
             : state.name === "New South Wales" ? "NSW"
             : state.name === "Queensland" ? "QLD"
@@ -269,36 +260,72 @@ export async function GET(req: NextRequest) {
             : state.name === "Western Australia" ? "WA"
             : state.name === "Tasmania" ? "TAS"
             : state.name === "Northern Territory" ? "NT"
-            : state.name === "ACT" ? "ACT" : "VIC";
+            : "ACT";
 
-          const schoolItems: string[] = [];
-          for (const s of withDist.filter(x => !univPlaces.find(u => u.name === x.name)).slice(0, 3)) {
+          // Filter: only keep results that are genuine primary/secondary schools or unis
+          const SCHOOL_KEYWORDS = /\b(school|college|grammar|academy|institute|montessori|kindergarten|preschool|pre-school|campus|education|girls|boys|ladies|christian|anglican|catholic|lutheran|jewish|islamic)\b/i;
+          const EXCLUDE_KEYWORDS = /\b(swimming|music lesson|driving|gym|sport|dance|martial|tutorial|coaching|childcare|child care)\b/i;
+
+          function isRealSchool(name: string): boolean {
+            const n = name.toLowerCase();
+            if (EXCLUDE_KEYWORDS.test(n) && !SCHOOL_KEYWORDS.test(n)) return false;
+            return SCHOOL_KEYWORDS.test(n) || lookupSchool(name, suburb, stateCode) !== null;
+          }
+
+          const schoolsWithDist = schoolPlaces
+            .filter(s => isRealSchool(s.name))
+            .map(s => ({ ...s, dist: haversine(lat, lng, s.lat, s.lng), isUni: false }))
+            .sort((a, b) => a.dist - b.dist)
+            .filter((s, i, arr) => arr.findIndex(x => x.name === s.name) === i);
+
+          const unisWithDist = univPlaces
+            .map(u => ({ ...u, dist: haversine(lat, lng, u.lat, u.lng), isUni: true }))
+            .sort((a, b) => a.dist - b.dist);
+
+          // Build structured school data for rich display
+          const schoolData = [];
+          for (const s of schoolsWithDist.slice(0, 5)) {
             try {
-              const rec = lookupSchool(s.name, "", stateCode);
-              if (rec) {
-                const rank = rec.icsea_percentile ? ` · ${icseaLabel(rec.icsea_percentile)}` : "";
-                const naplan = rec.naplan_vs_australia ? ` · NAPLAN ${rec.naplan_vs_australia}` : "";
-                const meta = [rec.sector !== "Government" ? rec.sector : "Gov.", rec.year_range].filter(Boolean).join(" · ");
-                schoolItems.push(`🏫 ${s.name} (${fmtDist(s.dist)})${rank}${naplan} · ${meta}`);
-              } else {
-                schoolItems.push(`🏫 ${s.name} (${fmtDist(s.dist)})`);
-              }
+              const rec = lookupSchool(s.name, suburb, stateCode);
+              schoolData.push({
+                name: s.name,
+                dist: s.dist,
+                distLabel: fmtDist(s.dist),
+                isUni: false,
+                sector:           rec?.sector ?? null,
+                schoolType:       rec?.school_type ?? null,
+                yearRange:        rec?.year_range ?? null,
+                icsea:            rec?.icsea ?? null,
+                icseaPercentile:  rec?.icsea_percentile ?? null,
+                icseaLabel:       icseaLabel(rec?.icsea_percentile ?? null) || null,
+                naplanVsAus:      rec?.naplan_vs_australia ?? null,
+                naplanAvg:        rec?.naplan_avg ?? null,
+                totalEnrolments:  rec?.total_enrolments ?? null,
+                url:              rec?.school_url ?? null,
+              });
             } catch {
-              schoolItems.push(`🏫 ${s.name} (${fmtDist(s.dist)})`);
+              schoolData.push({ name: s.name, dist: s.dist, distLabel: fmtDist(s.dist), isUni: false });
             }
           }
-          for (const u of univDist.slice(0, 1)) {
-            schoolItems.push(`🎓 ${u.name} (${fmtDist(u.dist)})`);
+          for (const u of unisWithDist.slice(0, 2)) {
+            schoolData.push({ name: u.name, dist: u.dist, distLabel: fmtDist(u.dist), isUni: true });
           }
 
-          const detail = withDist.length > 0
-            ? `${withDist[0].name} · ${fmtDist(withDist[0].dist)} away · ${withDist.length} school${withDist.length !== 1 ? "s" : ""}/unis within 3km`
+          const allCount = schoolsWithDist.length;
+          const nearest = schoolsWithDist[0];
+          const detail = nearest
+            ? `${nearest.name} · ${fmtDist(nearest.dist)} away · ${allCount} school${allCount !== 1 ? "s" : ""} within 2km`
             : "No schools nearby";
+
           send("school", {
-            score: toScore(withDist.length, [1, 2, 4, 6, 10]),
-            count: withDist.length,
+            score: toScore(allCount, [1, 2, 4, 6, 10]),
+            count: allCount,
             detail,
-            items: schoolItems,
+            items: schoolData.map(s => s.isUni
+              ? `🎓 ${s.name} (${s.distLabel})`
+              : `🏫 ${s.name} (${s.distLabel})${s.icseaLabel ? ` · ${s.icseaLabel}` : ""}${s.sector && s.sector !== "Government" ? ` · ${s.sector}` : ""}${s.yearRange ? ` · ${s.yearRange}` : ""}`
+            ),
+            schoolData,
           });
         }).catch(() => send("school", { score: 5, count: 0, detail: "Data unavailable", items: [] })),
 

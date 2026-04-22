@@ -12,11 +12,18 @@ declare global {
   }
 }
 
+interface SchoolData {
+  name: string; dist: number; distLabel: string; isUni: boolean;
+  sector?: string; schoolType?: string; yearRange?: string;
+  icsea?: number; icseaPercentile?: number; icseaLabel?: string;
+  naplanVsAus?: string; naplanAvg?: number; totalEnrolments?: number; url?: string;
+}
 interface ScoreItem {
   score: number;
   detail: string;
   items?: string[];
   noData?: boolean;
+  schoolData?: SchoolData[];
 }
 interface Scores {
   school:      ScoreItem;
@@ -106,7 +113,9 @@ function PropertyReportPage() {
       setScores({});
       setAllLoaded(false);
       fetch("/api/finance-rates").then(r => r.ok ? r.json() : null).then(d => { if (d) setFinanceRates(d); });
-      fetch(`/api/property-score?lat=${latN}&lng=${lngN}`)
+      const subM = (searchParams.get("address") ?? "").match(/,\s*([^,]+?)\s+(?:VIC|NSW|QLD|SA|WA|TAS|NT|ACT)\s+\d{4}/i);
+      const subP = subM ? encodeURIComponent(subM[1].trim()) : "";
+      fetch(`/api/property-score?lat=${latN}&lng=${lngN}&suburb=${subP}`)
         .then(async response => {
           setLoading(false);
           if (!response.ok) { const d = await response.json(); setError(d.error ?? "Failed to load."); return; }
@@ -158,8 +167,10 @@ function PropertyReportPage() {
     setAllLoaded(false);
     setSent(false);
     fetch("/api/finance-rates").then(r => r.ok ? r.json() : null).then(d => { if (d) setFinanceRates(d); });
+    const suburbMatch = address.match(/,\s*([^,]+?)\s+(?:VIC|NSW|QLD|SA|WA|TAS|NT|ACT)\s+\d{4}/i);
+    const suburbParam = suburbMatch ? encodeURIComponent(suburbMatch[1].trim()) : "";
     try {
-      const response = await fetch(`/api/property-score?lat=${lat}&lng=${lng}`);
+      const response = await fetch(`/api/property-score?lat=${lat}&lng=${lng}&suburb=${suburbParam}`);
       setLoading(false);
       if (!response.ok) { const d = await response.json(); setError(d.error ?? "Failed to load property data."); return; }
       await consumeScoreStream(response);
@@ -330,9 +341,11 @@ function PropertyReportPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {SCORE_META.map(m => {
               const s = scores[m.key as keyof Scores];
+
+              // Skeleton
               if (!s) {
                 return (
-                  <div key={m.key} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
+                  <div key={m.key} className={`bg-white rounded-xl border border-gray-200 p-5 animate-pulse${m.key === "school" ? " md:col-span-2" : ""}`}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{m.icon}</span>
@@ -349,7 +362,85 @@ function PropertyReportPage() {
                   </div>
                 );
               }
+
               const { label, color } = ScoreLabel(s.score);
+
+              // ── Special full-width school card ──────────────────────────
+              if (m.key === "school") {
+                return (
+                  <div key="school" className="md:col-span-2 bg-white rounded-xl border border-gray-200 p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{m.icon}</span>
+                        <span className="font-bold text-gray-800 text-sm">{m.label}</span>
+                      </div>
+                      <div className="flex items-end gap-0.5">
+                        <span className="text-2xl font-extrabold" style={{ color: "#007a6e" }}>{s.score}</span>
+                        <span className="text-gray-400 text-xs mb-1">/10</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-2">
+                      <div className="h-1.5 rounded-full" style={{ width: `${s.score * 10}%`, backgroundColor: "#007a6e" }} />
+                    </div>
+                    <p className={`text-xs font-semibold ${color} mb-4`}>{label}</p>
+
+                    {s.schoolData && s.schoolData.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {s.schoolData.map((sch, i) => (
+                          <div key={i} className="border border-gray-100 rounded-xl p-4 bg-gray-50 hover:bg-emerald-50 hover:border-emerald-200 transition-colors">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-base flex-shrink-0">{sch.isUni ? "🎓" : "🏫"}</span>
+                                <span className="font-semibold text-gray-900 text-sm leading-snug">{sch.name}</span>
+                              </div>
+                              <span className="text-xs text-gray-400 flex-shrink-0">{sch.distLabel}</span>
+                            </div>
+
+                            {!sch.isUni && (
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {sch.icseaLabel && (
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                    sch.icseaPercentile && sch.icseaPercentile >= 90 ? "bg-emerald-100 text-emerald-700" :
+                                    sch.icseaPercentile && sch.icseaPercentile >= 75 ? "bg-blue-100 text-blue-700" :
+                                    sch.icseaPercentile && sch.icseaPercentile >= 50 ? "bg-yellow-100 text-yellow-700" :
+                                    "bg-gray-100 text-gray-600"
+                                  }`}>
+                                    🏆 {sch.icseaLabel}
+                                  </span>
+                                )}
+                                {sch.naplanVsAus && (
+                                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                    sch.naplanVsAus.toLowerCase().includes("above") ? "bg-emerald-50 text-emerald-600" :
+                                    sch.naplanVsAus.toLowerCase().includes("below") ? "bg-red-50 text-red-600" :
+                                    "bg-gray-100 text-gray-600"
+                                  }`}>
+                                    📊 NAPLAN {sch.naplanVsAus}
+                                  </span>
+                                )}
+                                {sch.sector && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{sch.sector}</span>
+                                )}
+                                {sch.yearRange && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{sch.yearRange}</span>
+                                )}
+                                {sch.totalEnrolments && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{sch.totalEnrolments.toLocaleString()} students</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400">{s.detail}</p>
+                    )}
+
+                    <p className="text-xs text-gray-400 mt-3">School ranking based on ICSEA (Index of Community Socio-Educational Advantage) · Source: ACARA 2025</p>
+                  </div>
+                );
+              }
+
+              // ── Standard card for all other scores ──────────────────────
               return (
                 <div key={m.key} className="bg-white rounded-xl border border-gray-200 p-5">
                   <div className="flex items-center justify-between mb-3">
