@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import https from "https";
+import { lookupSchool, icseaLabel } from "@/lib/schools-db";
 
 const GMAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -259,6 +260,37 @@ export async function GET(req: NextRequest) {
           const univDist = univPlaces
             .map(u => ({ name: u.name, dist: haversine(lat, lng, u.lat, u.lng) }))
             .sort((a, b) => a.dist - b.dist);
+
+          // Enrich with ACARA data from local DB
+          const stateCode = state.name === "Victoria" ? "VIC"
+            : state.name === "New South Wales" ? "NSW"
+            : state.name === "Queensland" ? "QLD"
+            : state.name === "South Australia" ? "SA"
+            : state.name === "Western Australia" ? "WA"
+            : state.name === "Tasmania" ? "TAS"
+            : state.name === "Northern Territory" ? "NT"
+            : state.name === "ACT" ? "ACT" : "VIC";
+
+          const schoolItems: string[] = [];
+          for (const s of withDist.filter(x => !univPlaces.find(u => u.name === x.name)).slice(0, 3)) {
+            try {
+              const rec = lookupSchool(s.name, "", stateCode);
+              if (rec) {
+                const rank = rec.icsea_percentile ? ` · ${icseaLabel(rec.icsea_percentile)}` : "";
+                const naplan = rec.naplan_vs_australia ? ` · NAPLAN ${rec.naplan_vs_australia}` : "";
+                const meta = [rec.sector !== "Government" ? rec.sector : "Gov.", rec.year_range].filter(Boolean).join(" · ");
+                schoolItems.push(`🏫 ${s.name} (${fmtDist(s.dist)})${rank}${naplan} · ${meta}`);
+              } else {
+                schoolItems.push(`🏫 ${s.name} (${fmtDist(s.dist)})`);
+              }
+            } catch {
+              schoolItems.push(`🏫 ${s.name} (${fmtDist(s.dist)})`);
+            }
+          }
+          for (const u of univDist.slice(0, 1)) {
+            schoolItems.push(`🎓 ${u.name} (${fmtDist(u.dist)})`);
+          }
+
           const detail = withDist.length > 0
             ? `${withDist[0].name} · ${fmtDist(withDist[0].dist)} away · ${withDist.length} school${withDist.length !== 1 ? "s" : ""}/unis within 3km`
             : "No schools nearby";
@@ -266,10 +298,7 @@ export async function GET(req: NextRequest) {
             score: toScore(withDist.length, [1, 2, 4, 6, 10]),
             count: withDist.length,
             detail,
-            items: [
-              ...withDist.filter(s => !univPlaces.find(u => u.name === s.name)).slice(0, 2).map(s => `🏫 ${s.name} (${fmtDist(s.dist)})`),
-              ...univDist.slice(0, 2).map(u => `🎓 ${u.name} (${fmtDist(u.dist)})`),
-            ],
+            items: schoolItems,
           });
         }).catch(() => send("school", { score: 5, count: 0, detail: "Data unavailable", items: [] })),
 
