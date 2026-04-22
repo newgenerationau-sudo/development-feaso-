@@ -18,12 +18,15 @@ interface SchoolData {
   icsea?: number; icseaPercentile?: number; icseaLabel?: string;
   naplanVsAus?: string; naplanAvg?: number; totalEnrolments?: number; url?: string;
 }
+interface CatchmentZone { name: string; yearLevel: string; }
 interface ScoreItem {
   score: number;
   detail: string;
   items?: string[];
   noData?: boolean;
   schoolData?: SchoolData[];
+  catchmentPrimary?: CatchmentZone | null;
+  catchmentSecondary?: CatchmentZone | null;
 }
 interface Scores {
   school:      ScoreItem;
@@ -345,7 +348,7 @@ function PropertyReportPage() {
               // Skeleton
               if (!s) {
                 return (
-                  <div key={m.key} className={`bg-white rounded-xl border border-gray-200 p-5 animate-pulse${m.key === "school" ? " md:col-span-2" : ""}`}>
+                  <div key={m.key} className={`bg-white rounded-xl border border-gray-200 p-5 animate-pulse${m.key === "school" ? " col-span-full" : ""}`}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{m.icon}</span>
@@ -365,10 +368,10 @@ function PropertyReportPage() {
 
               const { label, color } = ScoreLabel(s.score);
 
-              // ── Special full-width school card ──────────────────────────
+              // ── Full-width school card ──────────────────────────────────
               if (m.key === "school") {
                 return (
-                  <div key="school" className="md:col-span-2 bg-white rounded-xl border border-gray-200 p-5">
+                  <div key="school" className="col-span-full bg-white rounded-xl border border-gray-200 p-5">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{m.icon}</span>
@@ -384,8 +387,38 @@ function PropertyReportPage() {
                     </div>
                     <p className={`text-xs font-semibold ${color} mb-4`}>{label}</p>
 
+                    {/* Catchment zones banner */}
+                    {(s.catchmentPrimary || s.catchmentSecondary) && (
+                      <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                        <p className="text-xs font-bold text-emerald-800 mb-2">📍 This address is zoned for:</p>
+                        <div className="flex flex-wrap gap-3">
+                          {s.catchmentPrimary && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">🏫</span>
+                              <div>
+                                <p className="text-sm font-semibold text-gray-900 leading-tight">{s.catchmentPrimary.name}</p>
+                                <p className="text-xs text-emerald-700">Primary · Year {s.catchmentPrimary.yearLevel}</p>
+                              </div>
+                            </div>
+                          )}
+                          {s.catchmentPrimary && s.catchmentSecondary && (
+                            <div className="w-px bg-emerald-200 self-stretch" />
+                          )}
+                          {s.catchmentSecondary && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">🏫</span>
+                              <div>
+                                <p className="text-sm font-semibold text-gray-900 leading-tight">{s.catchmentSecondary.name}</p>
+                                <p className="text-xs text-emerald-700">Secondary · Year {s.catchmentSecondary.yearLevel}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {s.schoolData && s.schoolData.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {s.schoolData.map((sch, i) => (
                           <div key={i} className="border border-gray-100 rounded-xl p-4 bg-gray-50 hover:bg-emerald-50 hover:border-emerald-200 transition-colors">
                             <div className="flex items-start justify-between gap-2 mb-2">
@@ -435,7 +468,7 @@ function PropertyReportPage() {
                       <p className="text-xs text-gray-400">{s.detail}</p>
                     )}
 
-                    <p className="text-xs text-gray-400 mt-3">School ranking based on ICSEA (Index of Community Socio-Educational Advantage) · Source: ACARA 2025</p>
+                    <p className="text-xs text-gray-400 mt-3">Catchment zones: VIC Dept of Education 2025 · Rankings: ICSEA (ACARA 2025)</p>
                   </div>
                 );
               }

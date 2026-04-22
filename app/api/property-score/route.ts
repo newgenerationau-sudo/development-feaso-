@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import https from "https";
 import { lookupSchool, icseaLabel } from "@/lib/schools-db";
+import { lookupCatchment } from "@/lib/school-zones";
 
 const GMAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -282,6 +283,17 @@ export async function GET(req: NextRequest) {
             .map(u => ({ ...u, dist: haversine(lat, lng, u.lat, u.lng), isUni: true }))
             .sort((a, b) => a.dist - b.dist);
 
+          // VIC school catchment zones (point-in-polygon from DET GeoJSON)
+          let catchmentPrimary: { name: string; yearLevel: string } | null = null;
+          let catchmentSecondary: { name: string; yearLevel: string } | null = null;
+          if (stateCode === "VIC") {
+            try {
+              const zones = lookupCatchment(lat, lng);
+              if (zones.primary) catchmentPrimary = { name: zones.primary.name, yearLevel: zones.primary.yearLevel };
+              if (zones.secondary) catchmentSecondary = { name: zones.secondary.name, yearLevel: zones.secondary.yearLevel };
+            } catch { /* zone lookup failed */ }
+          }
+
           // Build structured school data for rich display
           const schoolData = [];
           for (const s of schoolsWithDist.slice(0, 5)) {
@@ -326,6 +338,8 @@ export async function GET(req: NextRequest) {
               : `🏫 ${s.name} (${s.distLabel})${s.icseaLabel ? ` · ${s.icseaLabel}` : ""}${s.sector && s.sector !== "Government" ? ` · ${s.sector}` : ""}${s.yearRange ? ` · ${s.yearRange}` : ""}`
             ),
             schoolData,
+            catchmentPrimary,
+            catchmentSecondary,
           });
         }).catch(() => send("school", { score: 5, count: 0, detail: "Data unavailable", items: [] })),
 
